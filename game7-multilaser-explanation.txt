@@ -1,0 +1,116 @@
+First off, on line 243 - you have to change the declaration of the laser object to an array and use a  for-loop to populate it:
+
+var lasers = new Array();
+for (var i = 0; i < 3; i++) {
+  lasers[i] = createSprite('laser' + i, 0, -120, 2, 50);
+}
+
+
+We'll change our CSS selector to be a class instead of an ID:
+.laser {
+  background: #00ff00;
+  width: 2px;
+  height: 50px;
+  position: absolute;
+}
+
+
+Next, you'll want to change your "div" declaration for the lasers on line 50:
+
+<div class="laser" id="laser0"></div>
+<div class="laser" id="laser1"></div>
+<div class="laser" id="laser2"></div>
+
+
+Next, we'll define a new function.  We don't want our lasers to be constantly refreshing, so we're going to create this function to enforce some spacing:
+
+function getFireableLaser() {
+  var result = null;
+  for (var i = 0; i < lasers.length; i++) {
+    if (lasers[i].y <= -120) {
+      result = lasers[i];
+    }
+  }
+  return result;
+}
+
+
+If we have a laser that's moved a significant portion to the top of the screen, we return it.  Otherwise, we'll return null.
+
+Now we need to change our handleControls function to use the following code:
+
+if (controller.space) {
+  var laser = getFireableLaser();
+  if (laser) {
+    laser.x = hero.x + 9;
+    laser.y = hero.y - laser.h;
+  }
+}
+
+
+This will allow us to retrieve a laser that can be fired.
+
+Checking collisions becomes a bit more complicated because now we have to check for all of our lasers.  We'll add a function:
+
+function getIntersectingLaser(enemy) {
+  var result = null;
+  for (var i = 0; i < lasers.length; i++) {
+    if (intersects(lasers[i], enemy)) {
+      result = lasers[i];
+      break;
+    }
+  }
+  return result;
+}
+
+
+and modify our checkCollisions function:
+
+function checkCollisions() {
+  for (var i = 0; i < enemies.length; i++) {
+    var laser = getIntersectingLaser(enemies[i]);
+    if (laser) {
+      var element = document.getElementById(enemies[i].element);
+      element.style.visibility = 'hidden';
+      element.parentNode.removeChild(element);
+      enemies.splice(i, 1);
+      i--;
+      laser.y = -laser.h;
+      score += 100;
+    } else if (intersects(hero, enemies[i])) {
+      gameOver();
+    } else if (enemies[i].y + enemies[i].h >= 500) {
+      var element = document.getElementById(enemies[i].element);
+      element.style.visibility = 'hidden';
+      element.parentNode.removeChild(element);
+      enemies.splice(i, 1);
+      i--;
+    }
+  }
+}
+
+
+Finally, we'll modify our showSprites and setPosition functions to handle all of the lasers:
+
+function showSprites() {
+  setPosition(hero);
+  for (var i = 0; i < lasers.length; i++) {
+    setPosition(lasers[i]);
+  }
+  for (var i = 0; i < enemies.length; i++) {
+    setPosition(enemies[i]);
+  }
+  var scoreElement = document.getElementById('score');
+  scoreElement.innerHTML = 'SCORE: ' + score;
+}
+
+function updatePositions() {
+  for (var i = 0; i < enemies.length; i++) {
+    enemies[i].y += 4;
+    enemies[i].x += getRandom(7) - 3;
+    ensureBounds(enemies[i], true);
+  }
+  for (var i = 0; i < lasers.length; i++) {
+    lasers[i].y -= 12;
+  }
+}
